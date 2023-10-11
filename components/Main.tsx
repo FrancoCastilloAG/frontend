@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Navbar from './Navbar'; // Asegúrate de proporcionar la ruta correcta al componente Navbar
 
-const MainView = () => {
+const Main = () => {
   return (
     <View>
       <Navbar />
@@ -26,4 +26,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MainView;
+export default Main;
