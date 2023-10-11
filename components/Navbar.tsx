@@ -26,7 +26,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1877f2', // Color de fondo similar al de Facebook
     padding: 10,
     paddingHorizontal: 16,
-    marginTop: 40
   },
   profileIcon: {
     fontSize: 30,
