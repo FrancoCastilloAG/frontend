@@ -1,21 +1,40 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { Alert } from 'react-native';
 
-const Register = ({ navigation }: any) => {
+type RootStackParamList = {
+  Auth: undefined;
+};
+
+type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList,'Auth'>;
+
+interface AuthProps {
+  navigation: AuthScreenNavigationProp;
+}
+
+const Register: React.FC<AuthProps> = ({ navigation }) => {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rut, setRut] = useState(''); // Agrega el campo RUT si es necesario.
+  const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
 
   const handleRegister = () => {
+    if (!emailRegex.test(email)) {
+      Alert.alert('Correo Electrónico Inválido', 'Por favor, ingrese un correo electrónico válido.');
+      return;
+    }
+    if (!nombre.trim() || !email.trim() || !password.trim()) {
+      Alert.alert('Campos Vacíos', 'Por favor, complete todos los campos.');
+      return;
+    }
     const userData = {
       nombre: nombre,
       email: email,
       password: password,
-      rut: rut, // Agrega el campo RUT al objeto de datos si es necesario.
     };
 
-    fetch('http://192.168.0.12:3001/auth/register', {
+    fetch('http://10.127.107.21:3001/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,7 +50,6 @@ const Register = ({ navigation }: any) => {
       .then(data => {
         if (data) {
           console.log(data);
-          // Puedes agregar aquí la navegación a la pantalla de inicio de sesión o realizar otra acción deseada.
         } else {
           console.error('La respuesta del servidor está vacía o no es válida.');
         }
@@ -39,6 +57,7 @@ const Register = ({ navigation }: any) => {
       .catch(error => {
         console.error('Error:', error);
       });
+      navigation.navigate('Auth');
   };
 
   return (
@@ -65,13 +84,6 @@ const Register = ({ navigation }: any) => {
         value={password}
         placeholder="Contraseña"
         secureTextEntry={true}
-      />
-      {/* Agrega un campo de entrada para el RUT si es necesario */}
-      <TextInput
-        style={styles.input}
-        onChangeText={(text) => setRut(text)}
-        value={rut}
-        placeholder="RUT"
       />
       <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
         <Text style={styles.registerButtonText}>Registrarse</Text>

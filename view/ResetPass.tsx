@@ -3,8 +3,19 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
+  const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
 
   const handleResetPassword = () => {
+    if (!email) {
+      // El campo de correo electrónico está vacío.
+      alert('Por favor, ingrese su dirección de correo electrónico.');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      // El correo electrónico no cumple con el formato válido.
+      alert('Por favor, ingrese una dirección de correo electrónico válida.');
+      return;
+    }
     // Agregar lógica para restablecer la contraseña aquí.
     console.log('Restableciendo la contraseña para:', email);
   };
