@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../App";
+import useUserStore from '../components/userStore';
+import axios from 'axios';
 
-type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-  Register: undefined;
-  ResetPass: undefined;
-};
+type Props = NativeStackScreenProps<RootStackParamList, "Auth">;
 
-type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList,'Auth'>;
-
-interface AuthProps {
-  navigation: AuthScreenNavigationProp;
-}
-
-const Auth: React.FC<AuthProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+const Auth: React.FC<Props> = ({ navigation }) => {
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d.*\d)[A-Za-z\d]{4,}$/;
+  const [showPassword, setShowPassword] = useState(false);
+  const setToken = useUserStore((state) => state.setToken);
+  const url = useUserStore((state)=> state.apiUrl);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -32,60 +27,44 @@ const Auth: React.FC<AuthProps> = ({ navigation }) => {
       Alert.alert('Correo Electrónico Inválido', 'Por favor, ingrese un correo electrónico válido.');
       return;
     }
-    setLoading(true);
+    if (!passwordRegex.test(password)) {
+      Alert.alert('Contraseña Incorrecta', 'La contraseña debe tener al menos 4 caracteres, incluyendo al menos 2 números y una letra mayúscula.');
+      return;
+    }
     const userData = {
       email: email,
       password: password
     };
-    fetch('http://10.127.107.21:3001/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(userData)
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Error en la solicitud');
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data && data.token) {
-          // Guarda el token en AsyncStorage
-          AsyncStorage.setItem('token', data.token)
-            .then(() => {
-              // Navega a la pantalla principal una vez que el token esté guardado
-              navigation.navigate('Main');
-            })
-            .catch(error => {
-              console.error('Error al guardar el token:', error);
-            });
+    axios.post(`${url}:3001/auth/login`, userData)
+      .then((response) => {
+        const data = response.data;
+        if (data.error === "email incorrecta") {
+          Alert.alert('Email Incorrecto', 'El correo ingresado es incorrecto.');
+        } else if (data.error === "Contraseña incorrecta") {
+          Alert.alert('Contraseña Incorrecta', 'La contraseña es incorrecta.');
+        } else if (data && data.token) {
+          setToken(data.token);
+          navigation.replace("TabScreenStack");
         } else {
-          console.error('La respuesta del servidor está vacía o no es válida.');
+          throw new Error('No se pudo iniciar sesión. Por favor, inténtalo de nuevo.');
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error:', error);
-      })
-      .finally(() => {
-        setLoading(false); // Deshabilitar el indicador de carga después de la solicitud
       });
   };
 
+
   const handleForgotPassword = () => {
-    navigation.navigate('ResetPass');
-    console.log("Enviar correo de recuperación de contraseña");
+    navigation.navigate('RecoverPassword')
   };
+
   const handleRegister = () => {
     navigation.navigate('Register');
-    console.log("Registrar una nueva cuenta");
   };
-  
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Jira Software</Text>
+      <Text style={styles.title}>Jira</Text>
       <Text style={styles.label}>Email:</Text>
       <TextInput
         style={styles.input}
@@ -96,13 +75,23 @@ const Auth: React.FC<AuthProps> = ({ navigation }) => {
         autoCapitalize="none"
       />
       <Text style={styles.label}>Contraseña:</Text>
-      <TextInput
-        style={styles.input}
-        onChangeText={(text) => setPassword(text)}
-        value={password}
-        placeholder="Tu contraseña"
-        secureTextEntry={true}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.input}
+          onChangeText={(text) => setPassword(text)}
+          value={password}
+          placeholder="Tu contraseña"
+          secureTextEntry={!showPassword}
+        />
+        <TouchableWithoutFeedback onPress={() => setShowPassword(!showPassword)}>
+          <Ionicons
+            name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+            size={30}
+            color="#333"
+            style={styles.eyeIcon}
+          />
+        </TouchableWithoutFeedback>
+      </View>
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
       </TouchableOpacity>
@@ -122,6 +111,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#ccc',
+    marginBottom: 16,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 10, // Ajusta la posición según sea necesario
+    top: '40%', // Centra verticalmente el ícono
+    transform: [{ translateY: -16 }], // Ajusta verticalmente el ícono
   },
   title: {
     fontSize: 24,
@@ -175,7 +176,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
 });
 
 export default Auth;

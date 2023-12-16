@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { Alert } from 'react-native';
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../App";
+import useUserStore from '../components/userStore';
+import { commonStyles } from './Styles';
 
-type RootStackParamList = {
-  Auth: undefined;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
-type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList,'Auth'>;
-
-interface AuthProps {
-  navigation: AuthScreenNavigationProp;
-}
-
-const Register: React.FC<AuthProps> = ({ navigation }) => {
+const Register: React.FC<Props> = ({ navigation }) => {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d.*\d)[A-Za-z\d]{4,}$/;
+  const url = useUserStore((state) => state.apiUrl);
+
 
   const handleRegister = () => {
     if (!emailRegex.test(email)) {
       Alert.alert('Correo Electrónico Inválido', 'Por favor, ingrese un correo electrónico válido.');
+      return;
+    }
+    if (!passwordRegex.test(password)) {
+      Alert.alert('Contraseña Incorrecta', 'La contraseña debe tener al menos 4 caracteres, incluyendo al menos 2 números y una letra mayúscula.');
       return;
     }
     if (!nombre.trim() || !email.trim() || !password.trim()) {
@@ -34,7 +36,7 @@ const Register: React.FC<AuthProps> = ({ navigation }) => {
       password: password,
     };
 
-    fetch('http://10.127.107.21:3001/auth/register', {
+    fetch(`${url}:3001/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +51,7 @@ const Register: React.FC<AuthProps> = ({ navigation }) => {
       })
       .then(data => {
         if (data) {
-          console.log(data);
+          navigation.navigate('Auth');
         } else {
           console.error('La respuesta del servidor está vacía o no es válida.');
         }
@@ -57,21 +59,23 @@ const Register: React.FC<AuthProps> = ({ navigation }) => {
       .catch(error => {
         console.error('Error:', error);
       });
-      navigation.navigate('Auth');
+  };
+  const handleCancel = () => {
+    navigation.navigate('Auth'); // Navega de regreso a la pantalla de autenticación
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Registrarse</Text>
+    <View style={commonStyles.container}>
+      <Text style={commonStyles.title}>Registrarse</Text>
       <TextInput
-        style={styles.input}
+        style={commonStyles.input}
         onChangeText={(text) => setNombre(text)}
         value={nombre}
         placeholder="Nombre"
         autoCapitalize="words"
       />
       <TextInput
-        style={styles.input}
+        style={commonStyles.input}
         onChangeText={(text) => setEmail(text)}
         value={email}
         placeholder="Email"
@@ -79,54 +83,21 @@ const Register: React.FC<AuthProps> = ({ navigation }) => {
         autoCapitalize="none"
       />
       <TextInput
-        style={styles.input}
+        style={commonStyles.input}
         onChangeText={(text) => setPassword(text)}
         value={password}
         placeholder="Contraseña"
         secureTextEntry={true}
       />
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <Text style={styles.registerButtonText}>Registrarse</Text>
+      <TouchableOpacity style={commonStyles.greenButton} onPress={handleRegister}>
+        <Text style={commonStyles.buttonText}>Registrarse</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={commonStyles.redButton} onPress={handleCancel}>
+        <Text style={commonStyles.buttonText}>Cancelar</Text>
       </TouchableOpacity>
     </View>
   );
-};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 32,
-  },
-  input: {
-    width: '100%',
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 16,
-    borderRadius: 5,
-  },
-  registerButton: {
-    width: '100%',
-    backgroundColor: '#1877f2',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  registerButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
+};
 
 export default Register;
